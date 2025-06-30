@@ -3,147 +3,237 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nuclear Simulator</title>
+    <title>Nuclear Effects Simulator</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
-    <link rel="stylesheet" href="frontend/styles.css">
 </head>
 <body>
     <div class="container">
-        <h1>Nuclear Effects Simulator</h1>
-        
-        <div class="control-panel">
-            <div class="input-group">
-                <label for="yield">Yield: <span id="yield-value" class="value-display">100 kt</span></label>
-                <input type="range" id="yield" min="0.1" max="50000" value="100" step="0.1">
+        <header>
+            <h1>Nuclear Effects Simulator</h1>
+            <p class="subtitle">Advanced simulation of nuclear detonation effects</p>
+        </header>
+
+        <div class="simulator-container">
+            <div class="map-container">
+                <div id="map" class="map"></div>
+                <div class="map-overlay">
+                    <div class="location-info">
+                        <span>Ground Zero: </span>
+                        <span id="location-coords">0.0000°N, 0.0000°E</span>
+                    </div>
+                    <div class="wind-info">
+                        <span>Wind: </span>
+                        <span id="wind-info">10 m/s ↗ 45°</span>
+                    </div>
+                </div>
             </div>
-            
-            <div class="input-group">
-                <label for="distance">Distance: <span id="distance-value" class="value-display">1000 m</span></label>
-                <input type="range" id="distance" min="100" max="50000" value="1000" step="10">
+
+            <div class="control-panel">
+                <div class="panel-section">
+                    <h2>Detonation Parameters</h2>
+                    <div class="input-group">
+                        <label for="yield">Yield (kilotons):</label>
+                        <div class="slider-container">
+                            <input type="range" id="yield" min="0.1" max="100000" value="100" step="0.1">
+                            <span id="yield-value">100 kt</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="burst-height">Burst Height (meters):</label>
+                        <div class="slider-container">
+                            <input type="range" id="burst-height" min="0" max="20000" value="500" step="10">
+                            <span id="burst-height-value">500 m</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label>Burst Type:</label>
+                        <div class="radio-group">
+                            <label>
+                                <input type="radio" name="burst-type" value="airburst" checked>
+                                Airburst
+                            </label>
+                            <label>
+                                <input type="radio" name="burst-type" value="surface">
+                                Surface
+                            </label>
+                            <label>
+                                <input type="radio" name="burst-type" value="subsurface">
+                                Subsurface
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>Environmental Conditions</h2>
+                    <div class="input-group">
+                        <label for="wind-speed">Wind Speed (m/s):</label>
+                        <div class="slider-container">
+                            <input type="range" id="wind-speed" min="0" max="50" value="10" step="1">
+                            <span id="wind-speed-value">10 m/s</span>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="wind-direction">Wind Direction:</label>
+                        <div class="slider-container">
+                            <input type="range" id="wind-direction" min="0" max="360" value="45" step="1">
+                            <div class="wind-direction-display">
+                                <span id="wind-direction-value">45°</span>
+                                <div class="wind-arrow">↑</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="atmosphere">Atmospheric Clarity:</label>
+                        <div class="slider-container">
+                            <input type="range" id="atmosphere" min="0.1" max="1.0" value="0.7" step="0.05">
+                            <span id="atmosphere-value">70%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="panel-section">
+                    <h2>Location Parameters</h2>
+                    <div class="input-group">
+                        <label for="distance">Distance from GZ (meters):</label>
+                        <input type="number" id="distance" value="1000" min="100" max="100000">
+                    </div>
+
+                    <div class="input-group">
+                        <label for="population">Population Density:</label>
+                        <select id="population">
+                            <option value="rural">Rural (10/km²)</option>
+                            <option value="suburban">Suburban (1000/km²)</option>
+                            <option value="urban" selected>Urban (10,000/km²)</option>
+                            <option value="dense">Dense Urban (50,000/km²)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <button id="calculate-btn" class="simulate-btn">
+                    <span class="icon">☢️</span> Simulate Detonation
+                </button>
             </div>
-            
-            <button id="calculate-btn">Calculate Effects</button>
         </div>
-        
-        <div class="results" id="results-container">
-            <div class="result-card">
-                <h3>Overpressure</h3>
-                <p><span id="overpressure" class="result-value">0 kPa</span></p>
-                <p id="overpressure-effect" class="effect-description">-</p>
+
+        <div class="results-container" id="results-container">
+            <div class="results-header">
+                <h2>Detonation Effects Analysis</h2>
+                <div class="result-summary">
+                    <div class="summary-item">
+                        <span class="label">Blast Radius:</span>
+                        <span class="value" id="blast-radius">0 m</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Thermal Radius:</span>
+                        <span class="value" id="thermal-radius">0 m</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="label">Radiation Radius:</span>
+                        <span class="value" id="radiation-radius">0 m</span>
+                    </div>
+                </div>
             </div>
-            
-            <div class="result-card">
-                <h3>Thermal Radiation</h3>
-                <p><span id="thermal" class="result-value">0 cal/cm²</span></p>
-                <p id="thermal-effect" class="effect-description">-</p>
+
+            <div class="results-grid">
+                <div class="result-card blast-effects">
+                    <h3>Blast Effects</h3>
+                    <div class="result-item">
+                        <span>Overpressure:</span>
+                        <span id="overpressure" class="value">0 kPa</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Dynamic Pressure:</span>
+                        <span id="dynamic-pressure" class="value">0 kPa</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Arrival Time:</span>
+                        <span id="arrival-time" class="value">0 s</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Duration:</span>
+                        <span id="duration" class="value">0 s</span>
+                    </div>
+                    <div class="effect-description" id="blast-effect-desc">
+                        No significant blast damage
+                    </div>
+                </div>
+
+                <div class="result-card thermal-effects">
+                    <h3>Thermal Effects</h3>
+                    <div class="result-item">
+                        <span>Thermal Energy:</span>
+                        <span id="thermal" class="value">0 cal/cm²</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Ignition Probability:</span>
+                        <span id="ignition-prob" class="value">0%</span>
+                    </div>
+                    <div class="result-item">
+                        <span>3rd Degree Burns:</span>
+                        <span id="burns" class="value">0 m</span>
+                    </div>
+                    <div class="effect-description" id="thermal-effect-desc">
+                        No significant thermal effects
+                    </div>
+                </div>
+
+                <div class="result-card radiation-effects">
+                    <h3>Radiation Effects</h3>
+                    <div class="result-item">
+                        <span>Prompt Radiation:</span>
+                        <span id="prompt-rad" class="value">0 Sv</span>
+                    </div>
+                    <div class="result-item">
+                        <span>1h Fallout Dose:</span>
+                        <span id="fallout-dose" class="value">0 Sv/h</span>
+                    </div>
+                    <div class="result-item">
+                        <span>Lethal Radius:</span>
+                        <span id="lethal-radius" class="value">0 m</span>
+                    </div>
+                    <div class="effect-description" id="radiation-effect-desc">
+                        No significant radiation effects
+                    </div>
+                </div>
             </div>
-            
-            <div class="result-card">
-                <h3>Radiation Dose</h3>
-                <p><span id="radiation" class="result-value">0 Sv</span></p>
-                <p id="radiation-effect" class="effect-description">-</p>
+
+            <div class="casualty-estimate">
+                <h3>Casualty Estimate</h3>
+                <div class="casualty-grid">
+                    <div class="casualty-item">
+                        <span class="label">Immediate Fatalities:</span>
+                        <span id="fatalities" class="value">0</span>
+                    </div>
+                    <div class="casualty-item">
+                        <span class="label">Injuries:</span>
+                        <span id="injuries" class="value">0</span>
+                    </div>
+                    <div class="casualty-item">
+                        <span class="label">Affected Population:</span>
+                        <span id="affected" class="value">0</span>
+                    </div>
+                </div>
+                <div class="casualty-chart">
+                    <div class="chart-bar fatalities-bar" style="width: 0%"></div>
+                    <div class="chart-bar injuries-bar" style="width: 0%"></div>
+                    <div class="chart-bar affected-bar" style="width: 0%"></div>
+                </div>
             </div>
         </div>
+
+        <footer>
+            <p>Nuclear Effects Simulator v1.0 | Scientific models based on Glasstone & Dolan, NATO Handbook</p>
+            <p class="warning">⚠️ This simulation is for educational purposes only</p>
+        </footer>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const yieldSlider = document.getElementById('yield');
-            const distanceSlider = document.getElementById('distance');
-            const yieldValue = document.getElementById('yield-value');
-            const distanceValue = document.getElementById('distance-value');
-            const calculateBtn = document.getElementById('calculate-btn');
-            const resultsContainer = document.getElementById('results-container');
-            
-            // Result elements
-            const overpressureEl = document.getElementById('overpressure');
-            const thermalEl = document.getElementById('thermal');
-            const radiationEl = document.getElementById('radiation');
-            const overpressureEffectEl = document.getElementById('overpressure-effect');
-            const thermalEffectEl = document.getElementById('thermal-effect');
-            const radiationEffectEl = document.getElementById('radiation-effect');
-
-            // Update slider values
-            yieldSlider.addEventListener('input', () => {
-                yieldValue.textContent = `${parseFloat(yieldSlider.value).toLocaleString()} kt`;
-            });
-
-            distanceSlider.addEventListener('input', () => {
-                distanceValue.textContent = `${parseFloat(distanceSlider.value).toLocaleString()} m`;
-            });
-
-            // Calculate button handler
-            calculateBtn.addEventListener('click', async () => {
-                const payload = {
-                    yield: yieldSlider.value,
-                    distance: distanceSlider.value
-                };
-
-                try {
-                    calculateBtn.disabled = true;
-                    calculateBtn.textContent = 'Calculating...';
-                    
-                    const response = await fetch('/calculate-blast', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        },
-                        body: JSON.stringify(payload)
-                    });
-
-                    const data = await response.json();
-                    
-                    // Update results
-                    overpressureEl.textContent = `${data.overpressure_kpa.toFixed(1)} kPa`;
-                    thermalEl.textContent = `${data.thermal_cal_per_cm2.toFixed(1)} cal/cm²`;
-                    radiationEl.textContent = `${data.radiation_sv.toFixed(2)} Sv`;
-                    
-                    // Update effect descriptions
-                    overpressureEffectEl.textContent = getOverpressureEffect(data.overpressure_kpa);
-                    thermalEffectEl.textContent = getThermalEffect(data.thermal_cal_per_cm2);
-                    radiationEffectEl.textContent = getRadiationEffect(data.radiation_sv);
-                    
-                    // Show results
-                    resultsContainer.style.display = 'block';
-                    
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('Calculation failed. Check console for details.');
-                } finally {
-                    calculateBtn.disabled = false;
-                    calculateBtn.textContent = 'Calculate Effects';
-                }
-            });
-            
-            function getOverpressureEffect(pressure) {
-                if (pressure > 500) return "Total destruction of all structures";
-                if (pressure > 200) return "Reinforced concrete buildings destroyed";
-                if (pressure > 50) return "Residential buildings collapse";
-                if (pressure > 20) return "Glass windows shatter";
-                if (pressure > 5) return "Minor structural damage";
-                return "Minimal structural damage";
-            }
-            
-            function getThermalEffect(energy) {
-                if (energy > 100) return "Third-degree burns, spontaneous ignition of materials";
-                if (energy > 25) return "Second-degree burns, clothing ignites";
-                if (energy > 10) return "First-degree burns, flammable materials ignite";
-                if (energy > 5) return "Painful burns, possible ignition of thin materials";
-                return "Sunburn-like effects";
-            }
-            
-            function getRadiationEffect(dose) {
-                if (dose > 10) return "100% fatal within 48 hours";
-                if (dose > 5) return "50% fatal within 30 days (LD50)";
-                if (dose > 1) return "Radiation sickness, increased cancer risk";
-                if (dose > 0.5) return "Temporary radiation sickness";
-                return "Minimal acute effects";
-            }
-            
-            // Initialize slider values
-            yieldSlider.dispatchEvent(new Event('input'));
-            distanceSlider.dispatchEvent(new Event('input'));
-        });
-    </script>
+    <script src="https://cdn.jsdelivr.net/npm/ol@v7.3.0/dist/ol.js"></script>
+    <script src="frontend/app.js"></script>
 </body>
 </html>
