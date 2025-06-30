@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nuclear Simulator</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v7.3.0/ol.css">
+    <link rel="stylesheet" href="frontend/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Nuclear Effects Simulator</h1>
+        
+        <div class="control-panel">
+            <div class="input-group">
+                <label for="yield">Yield: <span id="yield-value" class="value-display">100 kt</span></label>
+                <input type="range" id="yield" min="0.1" max="50000" value="100" step="0.1">
+            </div>
+            
+            <div class="input-group">
+                <label for="distance">Distance: <span id="distance-value" class="value-display">1000 m</span></label>
+                <input type="range" id="distance" min="100" max="50000" value="1000" step="10">
+            </div>
+            
+            <button id="calculate-btn">Calculate Effects</button>
+        </div>
+        
+        <div class="results" id="results-container">
+            <div class="result-card">
+                <h3>Overpressure</h3>
+                <p><span id="overpressure" class="result-value">0 kPa</span></p>
+                <p id="overpressure-effect" class="effect-description">-</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Thermal Radiation</h3>
+                <p><span id="thermal" class="result-value">0 cal/cm²</span></p>
+                <p id="thermal-effect" class="effect-description">-</p>
+            </div>
+            
+            <div class="result-card">
+                <h3>Radiation Dose</h3>
+                <p><span id="radiation" class="result-value">0 Sv</span></p>
+                <p id="radiation-effect" class="effect-description">-</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const yieldSlider = document.getElementById('yield');
+            const distanceSlider = document.getElementById('distance');
+            const yieldValue = document.getElementById('yield-value');
+            const distanceValue = document.getElementById('distance-value');
+            const calculateBtn = document.getElementById('calculate-btn');
+            const resultsContainer = document.getElementById('results-container');
+            
+            // Result elements
+            const overpressureEl = document.getElementById('overpressure');
+            const thermalEl = document.getElementById('thermal');
+            const radiationEl = document.getElementById('radiation');
+            const overpressureEffectEl = document.getElementById('overpressure-effect');
+            const thermalEffectEl = document.getElementById('thermal-effect');
+            const radiationEffectEl = document.getElementById('radiation-effect');
+
+            // Update slider values
+            yieldSlider.addEventListener('input', () => {
+                yieldValue.textContent = `${parseFloat(yieldSlider.value).toLocaleString()} kt`;
+            });
+
+            distanceSlider.addEventListener('input', () => {
+                distanceValue.textContent = `${parseFloat(distanceSlider.value).toLocaleString()} m`;
+            });
+
+            // Calculate button handler
+            calculateBtn.addEventListener('click', async () => {
+                const payload = {
+                    yield: yieldSlider.value,
+                    distance: distanceSlider.value
+                };
+
+                try {
+                    calculateBtn.disabled = true;
+                    calculateBtn.textContent = 'Calculating...';
+                    
+                    const response = await fetch('/calculate-blast', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+                    
+                    // Update results
+                    overpressureEl.textContent = `${data.overpressure_kpa.toFixed(1)} kPa`;
+                    thermalEl.textContent = `${data.thermal_cal_per_cm2.toFixed(1)} cal/cm²`;
+                    radiationEl.textContent = `${data.radiation_sv.toFixed(2)} Sv`;
+                    
+                    // Update effect descriptions
+                    overpressureEffectEl.textContent = getOverpressureEffect(data.overpressure_kpa);
+                    thermalEffectEl.textContent = getThermalEffect(data.thermal_cal_per_cm2);
+                    radiationEffectEl.textContent = getRadiationEffect(data.radiation_sv);
+                    
+                    // Show results
+                    resultsContainer.style.display = 'block';
+                    
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Calculation failed. Check console for details.');
+                } finally {
+                    calculateBtn.disabled = false;
+                    calculateBtn.textContent = 'Calculate Effects';
+                }
+            });
+            
+            function getOverpressureEffect(pressure) {
+                if (pressure > 500) return "Total destruction of all structures";
+                if (pressure > 200) return "Reinforced concrete buildings destroyed";
+                if (pressure > 50) return "Residential buildings collapse";
+                if (pressure > 20) return "Glass windows shatter";
+                if (pressure > 5) return "Minor structural damage";
+                return "Minimal structural damage";
+            }
+            
+            function getThermalEffect(energy) {
+                if (energy > 100) return "Third-degree burns, spontaneous ignition of materials";
+                if (energy > 25) return "Second-degree burns, clothing ignites";
+                if (energy > 10) return "First-degree burns, flammable materials ignite";
+                if (energy > 5) return "Painful burns, possible ignition of thin materials";
+                return "Sunburn-like effects";
+            }
+            
+            function getRadiationEffect(dose) {
+                if (dose > 10) return "100% fatal within 48 hours";
+                if (dose > 5) return "50% fatal within 30 days (LD50)";
+                if (dose > 1) return "Radiation sickness, increased cancer risk";
+                if (dose > 0.5) return "Temporary radiation sickness";
+                return "Minimal acute effects";
+            }
+            
+            // Initialize slider values
+            yieldSlider.dispatchEvent(new Event('input'));
+            distanceSlider.dispatchEvent(new Event('input'));
+        });
+    </script>
+</body>
+</html>
